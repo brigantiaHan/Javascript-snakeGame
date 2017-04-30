@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Simple Snake Game</title>
+	<style type="text/css">
+		canvas
+		{
+			/*border:1px solid #000;*/
+			position: absolute;
+			top:50%;
+			left: 50%;
+			transform: translate(-50%,-50%);
+		}
+	</style>
+</head>
+<body>
+<script type="text/javascript">
+	var COLS=26,ROWS=26;
+	var EMPTY=0,SNAKE=1,FRUIT=2,BLOCK=3;
+	var LEFT=0,UP=1,RIGHT=2,DOWN=3;
+	var KEY_LEFT=37,KEY_UP=38,KEY_RIGHT=39,KEY_DOWN=40;
+
+	var grid={
+		width:null,
+		height:null,
+		_grid:null,
+
+		init:function(d,c,r)
+		{
+			this.width=c;
+			this.height=r;
+			this._grid=[];
+			for(var x=0;x<c;x++)
+			{
+				this._grid.push([]);
+				for(var y=0;y<r;y++)
+				{
+					this._grid[x].push(d);
+				}
+			}
+		},
+		set:function(val,x,y)
+		{
+			this._grid[x][y]=val;
+		},
+		get:function(x,y)
+		{
+			return this._grid[x][y];
+		}
+
+
+	}//grid
+	var snake={
+		direction:null,
+		last:null,
+		_queue:null,
+
+		init:function(d,x,y)
+		{
+			this.direction=d;
+			this._queue=[];
+			this.insert(x,y);
+		},
+		insert:function(x,y)
+		{
+			this._queue.unshift({x:x,y:y});
+			this.last=this._queue[0];
+		},
+		remove:function()
+		{
+			return this._queue.pop();
+
+		}
+	}
+
+	function setMap()
+	{
+		var maps=[1,2,3];
+		var randmap=maps[Math.floor(Math.random()*maps.length)];
+		
+		if(randmap==1)
+		{
+			for(var k=0;k<7;k++)
+			{
+				grid.set(BLOCK,grid.width/2+k,grid.height/2-4);
+				grid.set(BLOCK,grid.width/2-k,grid.height/2-4);
+
+				grid.set(BLOCK,grid.width/2+k,grid.height/2+4);
+				grid.set(BLOCK,grid.width/2-k,grid.height/2+4);
+			}
+			
+			
+			
+		}
+		else if(randmap==2)
+		{
+			for(var k=0;k<7;k++)
+			{
+				grid.set(BLOCK,grid.width/2+k,grid.height/2);
+				grid.set(BLOCK,grid.width/2-k,grid.height/2);
+
+				grid.set(BLOCK,grid.width/2,grid.height/2+k);
+				grid.set(BLOCK,grid.width/2,grid.height/2-k);
+			}
+			
+		}
+		else
+		{
+			grid.set(BLOCK,grid.width/2,grid.height/2);
+			for(var k=0;k<3;k++)
+			{
+				grid.set(BLOCK,4+k,4);
+				grid.set(BLOCK,4,4+k);
+				grid.set(BLOCK,grid.width-1-4-k,4);
+				grid.set(BLOCK,grid.width-1-4,4+k);
+				grid.set(BLOCK,4+k,grid.height-1-4);
+				grid.set(BLOCK,4,grid.height-1-4-k);
+				grid.set(BLOCK,grid.width-1-4-k,grid.height-1-4);
+				grid.set(BLOCK,grid.width-1-4,grid.height-1-4-k);
+			}
+			
+		}
+
+	}
+	function setFood()
+	{
+		var empty=[];
+		for(var x=0;x<grid.width;x++)
+			for(var y=0;y<grid.height;y++)
+			{
+				if(grid.get(x,y)===EMPTY)
+				{
+					empty.push({x:x,y:y});
+				}
+			}
+		var randpos=empty[Math.floor(Math.random()*empty.length)];
+		grid.set(FRUIT,randpos.x,randpos.y);
+	}
+
+	
+
+
+	//Game Objects
+
+	var canvas,ctx,keystate,frames,score,speed,preframes=0;
+
+	function main()
+	{
+		
+		canvas=document.createElement("canvas");
+		canvas.width=COLS*20;
+		canvas.height=ROWS*20;
+		ctx=canvas.getContext("2d");
+		document.body.appendChild(canvas);
+		//canvas.style.backgroundColor="#bdc3c7";
+		frames=0;
+		keystate={};
+
+		document.addEventListener("keydown",function(evt)
+			{
+				keystate[evt.keyCode]=true;
+				
+			});
+		document.addEventListener("keyup",function(evt)
+			{
+				delete keystate[evt.keyCode];
+			});
+
+		init();
+		loop();
+	}
+	function loop()
+	{
+		update();
+		draw();
+		window.requestAnimationFrame(loop,canvas);
+	}
+
+	function init()
+	{
+		frames=0;
+		preframes=0;
+		speed=16;
+		score=0;
+		grid.init(EMPTY,COLS,ROWS);
+
+		var sp={x:Math.floor(COLS/2),y:ROWS-1};
+
+		snake.init(UP,sp.x,sp.y);
+
+		grid.set(SNAKE,sp.x,sp.y);
+		setMap();
+		setFood();
+		
+		
+
+	}
+
+	function update()
+	{
+		
+		frames++;
+		console.log(speed);	
+		if(speed>2)
+		{
+			if((frames-preframes)==2000)
+			{
+				preframes=frames;
+				speed-=1;
+			}
+			
+		}
+		else
+		{
+			speed=2;
+		}
+		
+		if(keystate[KEY_UP] && snake.direction!=DOWN) 
+			snake.direction=UP;
+		if(keystate[KEY_DOWN] && snake.direction!=UP)
+			snake.direction=DOWN;
+		if(keystate[KEY_LEFT] && snake.direction!=RIGHT)
+			snake.direction=LEFT;
+		if(keystate[KEY_RIGHT] && snake.direction!=LEFT)
+			snake.direction=RIGHT;
+		
+			
+			
+		
+		
+		if(frames%speed===0)
+		{
+			var nx=snake.last.x;
+			var ny=snake.last.y;
+
+			switch(snake.direction)
+			{
+				case UP:
+					ny--;
+					break;
+				case DOWN:
+					ny++;
+					break;
+				case LEFT:
+					nx--;
+					break;
+				case RIGHT:
+					nx++;
+					break;
+
+			}
+			if(nx<0 || nx>grid.width-1 ||
+				ny<0 || ny>grid.height-1||
+				grid.get(nx,ny)===SNAKE||
+				grid.get(nx,ny)===BLOCK)
+			{
+				return init();
+			}
+
+			if(grid.get(nx,ny)===FRUIT)
+			{
+				score++;
+				var tail={x:nx,y:ny};
+				setFood();
+			}
+			else
+			{
+				var tail=snake.remove();
+				grid.set(EMPTY,tail.x,tail.y);
+				tail.x=nx;
+				tail.y=ny;
+			}
+
+			
+			
+			grid.set(SNAKE,tail.x,tail.y);
+			snake.insert(tail.x,tail.y);
+		}
+	}
+
+	function draw()
+	{
+		var tw=canvas.width/grid.width;
+		var th=canvas.height/grid.height;
+
+		for(var x=0;x<grid.width;x++)
+			for(var y=0;y<grid.height;y++)
+			{
+				switch(grid.get(x,y))
+				{
+					case EMPTY:
+					ctx.fillStyle="#34495e";
+					ctx.fillRect(x*tw,y*th,tw,th);
+					break;
+					case SNAKE:
+					ctx.fillStyle="#27ae60";
+					ctx.fillRect(x*tw,y*th,tw,th);
+					ctx.fillStyle="#2ecc71";
+					ctx.fillRect(x*tw+1,y*th+1,tw-2,th-2);
+					
+					break;
+					case FRUIT:
+					ctx.fillStyle="#e74c3c";
+					ctx.fillRect(x*tw,y*th,tw,th);
+					break;
+
+					case BLOCK:
+					ctx.fillStyle="#2980b9";
+					ctx.fillRect(x*tw,y*th,tw,th);
+					break;
+				}
+				
+				
+				
+			}
+			ctx.fillStyle="#f1c40f";
+			ctx.font = "20px Sans-serif";
+			ctx.fillText("SCORE: "+score,10,canvas.height-10);
+	}
+
+	main();
+</script>
+</body>
+</html>
